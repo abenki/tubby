@@ -17,15 +17,18 @@ load_dotenv()
 YOUTUBE_API_KEY: str = os.getenv("YOUTUBE_API_KEY", "")
 if not YOUTUBE_API_KEY:
     raise ValueError("YOUTUBE_API_KEY environment variable is not set")
-DOWNLOADS_DIR: str = os.path.expanduser('~/Downloads')
+DOWNLOADS_DIR: str = os.path.expanduser("~/Downloads")
+
 
 class DownloadRequest(BaseModel):
     url: HttpUrl
     format: str = Field(default="best", description="Video format to download")
 
+
 class VideoInfo(BaseModel):
     title: str
-    ext: str = "mp4" # file extension
+    ext: str = "mp4"  # file extension
+
 
 class DownloadResponse(BaseModel):
     success: bool
@@ -35,15 +38,17 @@ class DownloadResponse(BaseModel):
     path: Optional[str] = None
     error: Optional[str] = None
 
+
 class VideoDetailsRequest(BaseModel):
     url: HttpUrl
 
-    @field_validator('url')
+    @field_validator("url")
     @classmethod
     def validate_youtube_url(cls, v: str) -> str:
         if not extract_video_id(str(v)):
             raise ValueError("Invalid YouTube URL")
         return v
+
 
 class VideoDetailsData(BaseModel):
     title: str
@@ -51,10 +56,12 @@ class VideoDetailsData(BaseModel):
     thumbnail: str
     duration: str
 
+
 class VideoDetailsResponse(BaseModel):
     success: bool
     data: Optional[VideoDetailsData] = None
     error: Optional[str] = None
+
 
 def extract_video_id(url: str) -> Optional[str]:
     """
@@ -66,19 +73,21 @@ def extract_video_id(url: str) -> Optional[str]:
     Returns:
         The video ID if found, None otherwise
     """
-    regex = r'(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|\S+\?v=|\S*\/)?([^&\/\n\s]+))'
+    regex = r"(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|\S+\?v=|\S*\/)?([^&\/\n\s]+))"
     match = re.search(regex, url)
     return match.group(1) if match else None
+
 
 @app.route("/")
 def hello_world() -> str:
     return "<p>Hello, World!</p>"
 
-@app.route('/api/video_details', methods=['GET'])
+
+@app.route("/api/video_details", methods=["GET"])
 def get_video_details() -> tuple[Response, int]:
     try:
         # Get URL from query parameters
-        url = request.args.get('url')
+        url = request.args.get("url")
         if not url:
             return jsonify({"success": False, "error": "No URL provided"}), 400
 
@@ -97,15 +106,15 @@ def get_video_details() -> tuple[Response, int]:
         response.raise_for_status()  # Raise an exception for HTTP errors
         data = response.json()
 
-        if 'items' not in data or len(data['items']) == 0:
+        if "items" not in data or len(data["items"]) == 0:
             return jsonify({"success": False, "error": "Video not found"}), 404
 
-        video = data['items'][0]
+        video = data["items"][0]
         video_details = VideoDetailsData(
-            title=video['snippet']['title'],
-            channel=video['snippet']['channelTitle'],
-            thumbnail=video['snippet']['thumbnails']['high']['url'],
-            duration=video['contentDetails']['duration']
+            title=video["snippet"]["title"],
+            channel=video["snippet"]["channelTitle"],
+            thumbnail=video["snippet"]["thumbnails"]["high"]["url"],
+            duration=video["contentDetails"]["duration"],
         )
 
         result = VideoDetailsResponse(success=True, data=video_details)
@@ -118,7 +127,8 @@ def get_video_details() -> tuple[Response, int]:
         result = VideoDetailsResponse(success=False, error=f"Unexpected error: {str(e)}")
         return jsonify(result.model_dump(exclude_none=True)), 500
 
-@app.route('/api/download', methods=['POST'])
+
+@app.route("/api/download", methods=["POST"])
 def download_video() -> tuple[Response, int]:
     try:
         # Parse and validate the request data
@@ -127,15 +137,15 @@ def download_video() -> tuple[Response, int]:
 
         # Generate a unique filename
         unique_id = str(uuid.uuid4())[:4]
-        output_template = os.path.join(DOWNLOADS_DIR, f'%(title)s-{unique_id}.%(ext)s')
+        output_template = os.path.join(DOWNLOADS_DIR, f"%(title)s-{unique_id}.%(ext)s")
 
         # Configure yt-dlp options
         yt_dlp_options = {
-            'format': download_request.format,
-            'outtmpl': output_template,
-            'quiet': False,
-            'no_warnings': False,
-            'progress': True
+            "format": download_request.format,
+            "outtmpl": output_template,
+            "quiet": False,
+            "no_warnings": False,
+            "progress": True,
         }
 
         # Download the video
@@ -146,21 +156,21 @@ def download_video() -> tuple[Response, int]:
                 response = DownloadResponse(
                     success=False,
                     message="Failed to extract video information",
-                    error="No video information returned"
+                    error="No video information returned",
                 )
                 return jsonify(response.model_dump(exclude_none=True)), 500
 
             # Create a VideoInfo object from the returned info
             try:
                 video_info = VideoInfo(
-                    title=info_dict.get('title', 'video'),
-                    ext=info_dict.get('ext', 'mp4')
+                    title=info_dict.get("title", "video"),
+                    ext=info_dict.get("ext", "mp4"),
                 )
             except Exception as e:
                 response = DownloadResponse(
                     success=False,
                     message="Failed to process video information",
-                    error=str(e)
+                    error=str(e),
                 )
                 return jsonify(response.model_dump(exclude_none=True)), 500
 
@@ -174,17 +184,14 @@ def download_video() -> tuple[Response, int]:
             message=f"Video downloaded successfully as {filename}",
             title=video_info.title,
             format=download_request.format,
-            path=filepath
+            path=filepath,
         )
         return jsonify(response.model_dump(exclude_none=True)), 200
 
     except Exception as e:
-        response = DownloadResponse(
-            success=False,
-            message="Download failed",
-            error=str(e)
-        )
+        response = DownloadResponse(success=False, message="Download failed", error=str(e))
         return jsonify(response.model_dump(exclude_none=True)), 500
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     app.run(debug=True)

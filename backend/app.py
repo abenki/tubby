@@ -17,7 +17,10 @@ load_dotenv()
 YOUTUBE_API_KEY: str = os.getenv("YOUTUBE_API_KEY", "")
 if not YOUTUBE_API_KEY:
     raise ValueError("YOUTUBE_API_KEY environment variable is not set")
-DOWNLOADS_DIR: str = os.path.expanduser("~/Downloads")
+DOWNLOADS_DIR: str = os.path.join(os.path.expanduser("~"), "Downloads")
+if not os.path.exists(DOWNLOADS_DIR):
+    raise FileNotFoundError(f"""Downloads directory not found at {
+                            DOWNLOADS_DIR}. Please create this directory before running the application.""")
 
 
 class DownloadRequest(BaseModel):

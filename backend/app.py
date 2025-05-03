@@ -101,7 +101,9 @@ def get_video_details() -> tuple[Response, int]:
         video_id = extract_video_id(str(video_request.url))
 
         # Fetch video details from YouTube API
-        api_url = f"https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id={video_id}&key={YOUTUBE_API_KEY}"
+        api_url = f"https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id={
+            video_id
+        }&key={YOUTUBE_API_KEY}"
         response = requests.get(api_url)
         response.raise_for_status()  # Raise an exception for HTTP errors
         data = response.json()
@@ -121,10 +123,14 @@ def get_video_details() -> tuple[Response, int]:
         return jsonify(result.model_dump(exclude_none=True)), 200
 
     except requests.RequestException as e:
-        result = VideoDetailsResponse(success=False, error=f"YouTube API error: {str(e)}")
+        result = VideoDetailsResponse(
+            success=False, error=f"YouTube API error: {str(e)}"
+        )
         return jsonify(result.model_dump(exclude_none=True)), 500
     except Exception as e:
-        result = VideoDetailsResponse(success=False, error=f"Unexpected error: {str(e)}")
+        result = VideoDetailsResponse(
+            success=False, error=f"Unexpected error: {str(e)}"
+        )
         return jsonify(result.model_dump(exclude_none=True)), 500
 
 
@@ -137,7 +143,8 @@ def download_video() -> tuple[Response, int]:
 
         # Generate a unique filename
         unique_id = str(uuid.uuid4())[:4]
-        output_template = os.path.join(DOWNLOADS_DIR, f"%(title)s-{unique_id}.%(ext)s")
+        output_template = os.path.join(
+            DOWNLOADS_DIR, f"%(title)s-{unique_id}.%(ext)s")
 
         # Configure yt-dlp options
         yt_dlp_options = {
@@ -150,7 +157,8 @@ def download_video() -> tuple[Response, int]:
 
         # Download the video
         with yt_dlp.YoutubeDL(yt_dlp_options) as ydl:
-            info_dict = ydl.extract_info(str(download_request.url), download=True)
+            info_dict = ydl.extract_info(
+                str(download_request.url), download=True)
 
             if info_dict is None:
                 response = DownloadResponse(
@@ -189,7 +197,9 @@ def download_video() -> tuple[Response, int]:
         return jsonify(response.model_dump(exclude_none=True)), 200
 
     except Exception as e:
-        response = DownloadResponse(success=False, message="Download failed", error=str(e))
+        response = DownloadResponse(
+            success=False, message="Download failed", error=str(e)
+        )
         return jsonify(response.model_dump(exclude_none=True)), 500
 
 
